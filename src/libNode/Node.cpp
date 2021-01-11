@@ -1685,6 +1685,11 @@ bool Node::ProcessSubmitMissingTxn(const bytes& message, unsigned int offset,
     }
 
     m_prePrepMissingTxnhashes.clear();
+  } else {
+    LOG_GENERAL(WARNING,
+                "Submission of missing txns expected only in preprepare phase "
+                "- Rejecting submission");
+    return false;
   }
 
   lock_guard<mutex> g(m_mutexCreatedTransactions);
@@ -1782,18 +1787,6 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
 
   LOG_GENERAL(INFO, "Received from " << from);
 
-  // Avoid using the original message for broadcasting in case it contains
-  // excess data beyond the TxnPacket
-  // bytes message2 = {MessageType::NODE,
-  // NodeInstructionType::FORWARDTXNPACKET}; if
-  // (!Messenger::SetNodeForwardTxnBlock(
-  //         message2, MessageOffset::BODY, epochNumber, dsBlockNum, shardId,
-  //         lookupPubKey, transactions, signature)) {
-  //   LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-  //             "Messenger::GetNodeForwardTxnBlock failed.");
-  //   return false;
-  // }
-
   {
     // The check here is in case the lookup send the packet
     // earlier than the node receiving DS block, need to wait the
@@ -1826,12 +1819,13 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
   }
 
   // for shard:
-  // 1. DS epoch: lookup dispatch in new DS epoch, buffer and dispatch when mb
-  // finish, so normally first DS epoch won't have txns
+  // 1. DS epoch: lookup dispatch in new DS epoch, distribute immediately until
+  // mb consensus started.
   // 2. FB epoch: saying the 2nd epoch after ds epoch, lookup dispatch txn upon
-  // mb, they distribute right away until mb consensus started. During the mb
-  // submitting mb, all the packet received should be buffered
-  // consensus, all the packet received should be buffered
+  // mb soft confirmation. Shard node then distribute right away until mb
+  // consensus started. During the mb consensus, all the packet received should
+  // be buffered
+
   // for DS:
   // 1. DS epoch: lookup dispatch in new DS epoch, distribute immediately until
   // DSMB started, during DSMB and FB consensus, all packet should be buffered

@@ -113,8 +113,6 @@ class ConsensusBackup : public ConsensusCommon {
           nullptr,  // function handler to execute
                     // any post activity after validation of preprep
                     // message
-      // function to give a chance to check if the commit failure is resolved
-      // before changing to ERROR state
       CollectiveSigReadinessFunc collsig_readiness_func =
           nullptr  // function handler for waits until some cond is met
   );

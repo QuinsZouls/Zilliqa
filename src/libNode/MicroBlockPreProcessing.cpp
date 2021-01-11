@@ -1283,7 +1283,6 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
     return true;
   }
 
-  // This should be improved by another PR
   if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
       !m_mediator.GetIsVacuousEpoch() &&
       ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() >=
@@ -1297,7 +1296,6 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
     while (m_txnPacketThreadOnHold > 0) {
       std::this_thread::sleep_for(chrono::milliseconds(100));
     }
-    // ProcessTransactionWhenShardBackup(SHARD_MICROBLOCK_GAS_LIMIT);
   }
 
   LOG_EPOCH(
@@ -1333,19 +1331,6 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
   auto postPreprepValidationFunc = [this]() -> void {
     StartTxnProcessingThread();
   };
-
-  /* auto postFailedPreprepValidationFunc = [this]() -> bool {
-      unique_lock<mutex> lock(m_mutexPrePrepMissingTxnhashes);
-      if(m_prePrepMissingTxnhashes.empty()){
-        return true;
-      }
-      if(cv_missingTxnsReceived.wait_for(lock, chrono::seconds(5))){
-        LOG_GENERAL(INFO, "Didn't received missing txns within timeout!");
-        return false;
-      }
-      return true;
-  };
-  */
 
   auto txnProcessingReadinessfunc = [this]() -> bool {
     // wait for txn processing being ready by me (backup)
@@ -1537,14 +1522,14 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(bytes& errorMsg) {
     if (missingTxnHashes.size() > 0) {
       if (!m_prePrepRunning) {
         LOG_GENERAL(WARNING,
-                    "Handling missing txns in prepare phase should not be "
-                    "needed anymore!!");
+                    "Unexpected missing txns during prepare phase - rejecting "
+                    "microblock");
         return false;
       }
       {
         lock_guard<mutex> g(m_mutexPrePrepMissingTxnhashes);
         m_prePrepMissingTxnhashes.clear();
-        m_prePrepMissingTxnhashes = missingTxnHashes;
+        m_prePrepMissingTxnhashes = std::move(missingTxnHashes);
       }
       if (!Messenger::SetNodeMissingTxnsErrorMsg(
               errorMsg, 0, missingTxnHashes, m_mediator.m_currentEpochNum,
