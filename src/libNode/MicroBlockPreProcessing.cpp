@@ -1532,7 +1532,8 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(bytes& errorMsg) {
         m_prePrepMissingTxnhashes = std::move(missingTxnHashes);
       }
       if (!Messenger::SetNodeMissingTxnsErrorMsg(
-              errorMsg, 0, missingTxnHashes, m_mediator.m_currentEpochNum,
+              errorMsg, 0, m_prePrepMissingTxnhashes,
+              m_mediator.m_currentEpochNum,
               m_mediator.m_selfPeer.m_listenPortHost)) {
         LOG_GENERAL(WARNING, "Messenger::SetNodeMissingTxnsErrorMsg failed");
         return false;
