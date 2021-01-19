@@ -173,7 +173,6 @@ bool Node::ComposePrePrepMicroBlock(const uint64_t& microblock_gas_limit) {
   BlockHash prevHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetMyHash();
 
-  uint32_t numTxs = 0;
   const PubKey& minerPubKey = m_mediator.m_selfKey.second;
   CommitteeHash committeeHash;
   if (m_mediator.m_ds->m_mode == DirectoryService::IDLE) {
@@ -198,10 +197,10 @@ bool Node::ComposePrePrepMicroBlock(const uint64_t& microblock_gas_limit) {
 
   lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-  numTxs = m_createdTxns.size();
+  const uint32_t numTxs = m_createdTxns.size();
 
   for (const auto& entry : m_createdTxns.HashIndex) {
-    tranHashes.push_back(entry.first);
+    tranHashes.emplace_back(entry.first);
   }
 
   txRootHash = ComputeRoot(tranHashes);
@@ -225,7 +224,7 @@ bool Node::ComposePrePrepMicroBlock(const uint64_t& microblock_gas_limit) {
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "PrePrep Micro block proposed with "
                 << m_prePrepMicroblock->GetHeader().GetNumTxs()
-                << " transactions for epoch " << m_mediator.m_currentEpochNum);
+                << " transactions");
 
   return true;
 }
@@ -1203,16 +1202,6 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
   }
 
   ConsensusLeader* cl = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
-
-  /* auto announcementGeneratorFunc =
-      [this](bytes& dst, unsigned int offset, const uint32_t consensusID,
-             const uint64_t blockNumber, const bytes& blockHash,
-             const uint16_t leaderID, const PairOfKey& leaderKey,
-             bytes& messageToCosign) mutable -> bool {
-    return Messenger::SetNodeMicroBlockAnnouncement(
-        dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
-        *m_microblock, messageToCosign);
-  };*/
 
   auto preprepAnnouncementGeneratorFunc =
       [this](bytes& dst, unsigned int offset, const uint32_t consensusID,
