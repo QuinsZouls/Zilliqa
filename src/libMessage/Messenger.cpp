@@ -329,34 +329,6 @@ inline bool CheckRequiredFieldsProtoVCBlock(const ProtoVCBlock& protoVCBlock) {
   return true;
 }
 
-inline bool CheckRequiredFieldsProtoFallbackBlockFallbackBlockHeader(
-    const ProtoFallbackBlock::FallbackBlockHeader& protoFallbackBlockHeader) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  // Don't need to enforce check on repeated member faultyleaders
-  return protoFallbackBlockHeader.has_fallbackdsepochno() &&
-         protoFallbackBlockHeader.has_fallbackepochno() &&
-         protoFallbackBlockHeader.has_fallbackstate() &&
-         protoFallbackBlockHeader.has_stateroothash() &&
-         protoFallbackBlockHeader.has_leaderconsensusid() &&
-         protoFallbackBlockHeader.has_leadernetworkinfo() &&
-         protoFallbackBlockHeader.has_leaderpubkey() &&
-         protoFallbackBlockHeader.has_blockheaderbase() &&
-         protoFallbackBlockHeader.has_shardid();
-#endif
-  return true;
-}
-
-inline bool CheckRequiredFieldsProtoFallbackBlock(
-    const ProtoFallbackBlock& protoFallbackBlock) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  // Don't need to enforce check on repeated member mbinfos
-  return protoFallbackBlock.has_header() && protoFallbackBlock.has_blockbase();
-#endif
-  return true;
-}
-
 inline bool CheckRequiredFieldsProtoBlockBaseCoSignatures(
     const ProtoBlockBase::CoSignatures& protoCoSignatures) {
 // TODO: Check if default value is acceptable for each field
@@ -2047,116 +2019,6 @@ bool ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
   return ProtobufToBlockBase(protoBlockBase, vcBlock);
 }
 
-void FallbackBlockHeaderToProtobuf(
-    const FallbackBlockHeader& fallbackBlockHeader,
-    ProtoFallbackBlock::FallbackBlockHeader& protoFallbackBlockHeader) {
-  ZilliqaMessage::ProtoBlockHeaderBase* protoBlockHeaderBase =
-      protoFallbackBlockHeader.mutable_blockheaderbase();
-  BlockHeaderBaseToProtobuf(fallbackBlockHeader, *protoBlockHeaderBase);
-
-  protoFallbackBlockHeader.set_fallbackdsepochno(
-      fallbackBlockHeader.GetFallbackDSEpochNo());
-  protoFallbackBlockHeader.set_fallbackepochno(
-      fallbackBlockHeader.GetFallbackEpochNo());
-  protoFallbackBlockHeader.set_fallbackstate(
-      fallbackBlockHeader.GetFallbackState());
-  protoFallbackBlockHeader.set_stateroothash(
-      fallbackBlockHeader.GetStateRootHash().data(),
-      fallbackBlockHeader.GetStateRootHash().size);
-  protoFallbackBlockHeader.set_leaderconsensusid(
-      fallbackBlockHeader.GetLeaderConsensusId());
-  SerializableToProtobufByteArray(
-      fallbackBlockHeader.GetLeaderNetworkInfo(),
-      *protoFallbackBlockHeader.mutable_leadernetworkinfo());
-  SerializableToProtobufByteArray(
-      fallbackBlockHeader.GetLeaderPubKey(),
-      *protoFallbackBlockHeader.mutable_leaderpubkey());
-  protoFallbackBlockHeader.set_shardid(fallbackBlockHeader.GetShardId());
-}
-
-void FallbackBlockToProtobuf(const FallbackBlock& fallbackBlock,
-                             ProtoFallbackBlock& protoFallbackBlock) {
-  // Serialize header
-
-  ZilliqaMessage::ProtoFallbackBlock::FallbackBlockHeader* protoHeader =
-      protoFallbackBlock.mutable_header();
-
-  const FallbackBlockHeader& header = fallbackBlock.GetHeader();
-
-  FallbackBlockHeaderToProtobuf(header, *protoHeader);
-
-  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
-      protoFallbackBlock.mutable_blockbase();
-
-  BlockBaseToProtobuf(fallbackBlock, *protoBlockBase);
-}
-
-bool ProtobufToFallbackBlockHeader(
-    const ProtoFallbackBlock::FallbackBlockHeader& protoFallbackBlockHeader,
-    FallbackBlockHeader& fallbackBlockHeader) {
-  if (!CheckRequiredFieldsProtoFallbackBlockFallbackBlockHeader(
-          protoFallbackBlockHeader)) {
-    LOG_GENERAL(
-        WARNING,
-        "CheckRequiredFieldsProtoFallbackBlockFallbackBlockHeader failed");
-    return false;
-  }
-
-  Peer leaderNetworkInfo;
-  PubKey leaderPubKey;
-  StateHash stateRootHash;
-  CommitteeHash committeeHash;
-
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(protoFallbackBlockHeader.leadernetworkinfo(),
-                                  leaderNetworkInfo);
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(protoFallbackBlockHeader.leaderpubkey(),
-                                  leaderPubKey);
-
-  copy(protoFallbackBlockHeader.stateroothash().begin(),
-       protoFallbackBlockHeader.stateroothash().begin() +
-           min((unsigned int)protoFallbackBlockHeader.stateroothash().size(),
-               (unsigned int)stateRootHash.size),
-       stateRootHash.asArray().begin());
-
-  fallbackBlockHeader = FallbackBlockHeader(
-      protoFallbackBlockHeader.fallbackdsepochno(),
-      protoFallbackBlockHeader.fallbackepochno(),
-      protoFallbackBlockHeader.fallbackstate(), {stateRootHash},
-      protoFallbackBlockHeader.leaderconsensusid(), leaderNetworkInfo,
-      leaderPubKey, protoFallbackBlockHeader.shardid());
-
-  const ZilliqaMessage::ProtoBlockHeaderBase& protoBlockHeaderBase =
-      protoFallbackBlockHeader.blockheaderbase();
-
-  return ProtobufToBlockHeaderBase(protoBlockHeaderBase, fallbackBlockHeader);
-}
-
-bool ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
-                             FallbackBlock& fallbackBlock) {
-  if (!CheckRequiredFieldsProtoFallbackBlock(protoFallbackBlock)) {
-    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoFallbackBlock failed");
-    return false;
-  }
-
-  // Deserialize header
-  const ZilliqaMessage::ProtoFallbackBlock::FallbackBlockHeader& protoHeader =
-      protoFallbackBlock.header();
-
-  FallbackBlockHeader header;
-
-  if (!ProtobufToFallbackBlockHeader(protoHeader, header)) {
-    LOG_GENERAL(WARNING, "ProtobufToFallbackBlockHeader failed");
-    return false;
-  }
-
-  fallbackBlock = FallbackBlock(header, CoSignatures());
-
-  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
-      protoFallbackBlock.blockbase();
-
-  return ProtobufToBlockBase(protoBlockBase, fallbackBlock);
-}
-
 bool SetConsensusAnnouncementCore(
     ZilliqaMessage::ConsensusAnnouncement& announcement,
     const uint32_t consensusID, uint64_t blockNumber, const bytes& blockHash,
@@ -2247,20 +2109,6 @@ bool SetConsensusAnnouncementCore(
       announcement.vcblock().SerializeToArray(
           inputToSigning.data() + announcement.consensusinfo().ByteSize(),
           announcement.vcblock().ByteSize());
-      break;
-    case ConsensusAnnouncement::AnnouncementCase::kFallbackblock:
-      if (!announcement.fallbackblock().IsInitialized()) {
-        LOG_GENERAL(WARNING,
-                    "Announcement fallbackblock content not initialized");
-        return false;
-      }
-      inputToSigning.resize(announcement.consensusinfo().ByteSize() +
-                            announcement.fallbackblock().ByteSize());
-      announcement.consensusinfo().SerializeToArray(
-          inputToSigning.data(), announcement.consensusinfo().ByteSize());
-      announcement.fallbackblock().SerializeToArray(
-          inputToSigning.data() + announcement.consensusinfo().ByteSize(),
-          announcement.fallbackblock().ByteSize());
       break;
     case ConsensusAnnouncement::AnnouncementCase::ANNOUNCEMENT_NOT_SET:
     default:
@@ -2374,15 +2222,6 @@ bool GetConsensusAnnouncementCore(
     announcement.vcblock().SerializeToArray(
         tmp.data() + announcement.consensusinfo().ByteSize(),
         announcement.vcblock().ByteSize());
-  } else if (announcement.has_fallbackblock() &&
-             announcement.fallbackblock().IsInitialized()) {
-    tmp.resize(announcement.consensusinfo().ByteSize() +
-               announcement.fallbackblock().ByteSize());
-    announcement.consensusinfo().SerializeToArray(
-        tmp.data(), announcement.consensusinfo().ByteSize());
-    announcement.fallbackblock().SerializeToArray(
-        tmp.data() + announcement.consensusinfo().ByteSize(),
-        announcement.fallbackblock().ByteSize());
   } else {
     LOG_GENERAL(WARNING, "Announcement content not set");
     return false;
@@ -3163,80 +3002,6 @@ bool Messenger::GetVCBlock(const bytes& src, const unsigned int offset,
   return ProtobufToVCBlock(result, vcBlock);
 }
 
-bool Messenger::SetFallbackBlockHeader(
-    bytes& dst, const unsigned int offset,
-    const FallbackBlockHeader& fallbackBlockHeader) {
-  ProtoFallbackBlock::FallbackBlockHeader result;
-
-  FallbackBlockHeaderToProtobuf(fallbackBlockHeader, result);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(
-        WARNING,
-        "ProtoFallbackBlock::FallbackBlockHeader initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetFallbackBlockHeader(
-    const bytes& src, const unsigned int offset,
-    FallbackBlockHeader& fallbackBlockHeader) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoFallbackBlock::FallbackBlockHeader result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(
-        WARNING,
-        "ProtoFallbackBlock::FallbackBlockHeader initialization failed");
-    return false;
-  }
-
-  return ProtobufToFallbackBlockHeader(result, fallbackBlockHeader);
-}
-
-bool Messenger::SetFallbackBlock(bytes& dst, const unsigned int offset,
-                                 const FallbackBlock& fallbackBlock) {
-  ProtoFallbackBlock result;
-
-  FallbackBlockToProtobuf(fallbackBlock, result);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoFallbackBlock initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetFallbackBlock(const bytes& src, const unsigned int offset,
-                                 FallbackBlock& fallbackBlock) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoFallbackBlock result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoFallbackBlock initialization failed");
-    return false;
-  }
-
-  ProtobufToFallbackBlock(result, fallbackBlock);
-
-  return true;
-}
-
 bool Messenger::SetTransactionCoreInfo(bytes& dst, const unsigned int offset,
                                        const TransactionCoreInfo& transaction) {
   ProtoTransactionCoreInfo result;
@@ -3590,58 +3355,6 @@ bool Messenger::GetBlockLink(
   get<BlockLinkIndex::BLOCKHASH>(blocklink) = blkhash;
 
   return true;
-}
-
-bool Messenger::SetFallbackBlockWShardingStructure(
-    bytes& dst, const unsigned int offset, const FallbackBlock& fallbackblock,
-    const uint32_t& shardingStructureVersion, const DequeOfShard& shards) {
-  ProtoFallbackBlockWShardingStructure result;
-
-  FallbackBlockToProtobuf(fallbackblock, *result.mutable_fallbackblock());
-  ShardingStructureToProtobuf(shardingStructureVersion, shards,
-                              *result.mutable_sharding());
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING,
-                "ProtoFallbackBlockWShardingStructure initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetFallbackBlockWShardingStructure(
-    const bytes& src, const unsigned int offset, FallbackBlock& fallbackblock,
-    uint32_t& shardingStructureVersion, DequeOfShard& shards) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoFallbackBlockWShardingStructure result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING,
-                "ProtoFallbackBlockWShardingStructure initialization failed");
-    return false;
-  }
-
-// TODO: Check if default value is acceptable for each field
-#if 0
-  if (!result.has_fallbackblock() || !result.has_sharding()) {
-    LOG_GENERAL(
-        WARNING,
-        "GetFallbackBlockWShardingStructure check required field failed");
-    return false;
-  }
-#endif
-
-  ProtobufToFallbackBlock(result.fallbackblock(), fallbackblock);
-
-  return ProtobufToShardingStructure(result.sharding(),
-                                     shardingStructureVersion, shards);
 }
 
 bool Messenger::SetDiagnosticDataNodes(bytes& dst, const unsigned int offset,
@@ -5258,141 +4971,6 @@ bool Messenger::GetNodeMicroBlockAnnouncement(
   return true;
 }
 
-bool Messenger::SetNodeFallbackBlockAnnouncement(
-    bytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
-    const PairOfKey& leaderKey, const FallbackBlock& fallbackBlock,
-    bytes& messageToCosign) {
-  LOG_MARKER();
-
-  ConsensusAnnouncement announcement;
-
-  // Set the FallbackBlock announcement parameters
-
-  NodeFallbackBlockAnnouncement* fallbackblock =
-      announcement.mutable_fallbackblock();
-  SerializableToProtobufByteArray(fallbackBlock,
-                                  *fallbackblock->mutable_fallbackblock());
-
-  if (!fallbackblock->IsInitialized()) {
-    LOG_GENERAL(WARNING, "NodeFallbackBlockAnnouncement initialization failed");
-    return false;
-  }
-
-  // Set the common consensus announcement parameters
-
-  if (!SetConsensusAnnouncementCore(announcement, consensusID, blockNumber,
-                                    blockHash, leaderID, leaderKey)) {
-    LOG_GENERAL(WARNING, "SetConsensusAnnouncementCore failed");
-    return false;
-  }
-
-  // Serialize the part of the announcement that should be co-signed during the
-  // first round of consensus
-
-  messageToCosign.clear();
-  if (!fallbackBlock.GetHeader().Serialize(messageToCosign, 0)) {
-    LOG_GENERAL(WARNING, "FallbackBlockHeader serialization failed");
-    return false;
-  }
-
-  // Serialize the announcement
-
-  return SerializeToArray(announcement, dst, offset);
-}
-
-bool Messenger::GetNodeFallbackBlockAnnouncement(
-    const bytes& src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
-    const PubKey& leaderKey, FallbackBlock& fallbackBlock,
-    bytes& messageToCosign) {
-  LOG_MARKER();
-
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ConsensusAnnouncement announcement;
-  announcement.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!announcement.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ConsensusAnnouncement initialization failed");
-    return false;
-  }
-
-  if (!announcement.fallbackblock().IsInitialized()) {
-    LOG_GENERAL(WARNING, "NodeFallbackBlockAnnouncement initialization failed");
-    return false;
-  }
-
-  // Check the common consensus announcement parameters
-
-  if (!GetConsensusAnnouncementCore(announcement, consensusID, blockNumber,
-                                    blockHash, leaderID, leaderKey)) {
-    LOG_GENERAL(WARNING, "GetConsensusAnnouncementCore failed");
-    return false;
-  }
-
-  // Get the FallbackBlock announcement parameters
-
-  const NodeFallbackBlockAnnouncement& fallbackblock =
-      announcement.fallbackblock();
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(fallbackblock.fallbackblock(), fallbackBlock);
-
-  // Get the part of the announcement that should be co-signed during the first
-  // round of consensus
-
-  messageToCosign.clear();
-  if (!fallbackBlock.GetHeader().Serialize(messageToCosign, 0)) {
-    LOG_GENERAL(WARNING, "FallbackBlockHeader serialization failed");
-    return false;
-  }
-
-  return true;
-}
-
-bool Messenger::SetNodeFallbackBlock(bytes& dst, const unsigned int offset,
-                                     const FallbackBlock& fallbackBlock) {
-  LOG_MARKER();
-
-  NodeFallbackBlock result;
-
-  FallbackBlockToProtobuf(fallbackBlock, *result.mutable_fallbackblock());
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "NodeFallbackBlock initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetNodeFallbackBlock(const bytes& src,
-                                     const unsigned int offset,
-                                     FallbackBlock& fallbackBlock) {
-  LOG_MARKER();
-
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  NodeFallbackBlock result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "NodeFallbackBlock initialization failed");
-    return false;
-  }
-
-  ProtobufToFallbackBlock(result.fallbackblock(), fallbackBlock);
-
-  return true;
-}
-
 bool Messenger::ShardStructureToArray(bytes& dst, const unsigned int offset,
                                       const uint32_t& version,
                                       const DequeOfShard& shards) {
@@ -5482,6 +5060,80 @@ bool Messenger::GetNodeMissingTxnsErrorMsg(const bytes& src,
 
   epochNum = result.epochnum();
   listenPort = result.listenport();
+
+  return true;
+}
+
+bool Messenger::SetNodeGetVersion(bytes& dst, const unsigned int offset,
+                                  const uint32_t listenPort) {
+  LOG_MARKER();
+
+  NodeGetVersion result;
+  result.set_listenport(listenPort);
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "NodeGetVersion initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetNodeGetVersion(const bytes& src, const unsigned int offset,
+                                  uint32_t& listenPort) {
+  LOG_MARKER();
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  NodeGetVersion result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "NodeGetVersion initialization failed");
+    return false;
+  }
+
+  listenPort = result.listenport();
+
+  return true;
+}
+
+bool Messenger::SetNodeSetVersion(bytes& dst, const unsigned int offset,
+                                  const std::string& version) {
+  LOG_MARKER();
+
+  NodeSetVersion result;
+  result.set_version(version);
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "NodeSetVersion initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetNodeSetVersion(const bytes& src, const unsigned int offset,
+                                  std::string& version) {
+  LOG_MARKER();
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  NodeSetVersion result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "NodeSetVersion initialization failed");
+    return false;
+  }
+
+  version = result.version();
 
   return true;
 }
@@ -6743,114 +6395,6 @@ bool Messenger::GetLookupSetStateDeltasFromSeed(
   return true;
 }
 
-bool Messenger::SetLookupGetStateFromSeed(bytes& dst, const unsigned int offset,
-                                          const uint32_t listenPort) {
-  LOG_MARKER();
-
-  LookupGetStateFromSeed result;
-
-  result.set_listenport(listenPort);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupGetStateFromSeed initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetLookupGetStateFromSeed(const bytes& src,
-                                          const unsigned int offset,
-                                          uint32_t& listenPort) {
-  LOG_MARKER();
-
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  LookupGetStateFromSeed result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupGetStateFromSeed initialization failed");
-    return false;
-  }
-
-  listenPort = result.listenport();
-
-  return true;
-}
-
-bool Messenger::SetLookupSetStateFromSeed(bytes& dst, const unsigned int offset,
-                                          const PairOfKey& lookupKey,
-                                          const AccountStore& accountStore) {
-  LOG_MARKER();
-
-  LookupSetStateFromSeed result;
-
-  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
-  Signature signature;
-
-  bytes tmp;
-
-  if (!accountStore.Serialize(tmp, 0)) {
-    LOG_GENERAL(WARNING, "Failed to serialize AccountStore");
-    return false;
-  }
-  result.mutable_accountstore()->set_data(tmp.data(), tmp.size());
-
-  if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
-    LOG_GENERAL(WARNING, "Failed to sign accounts");
-    return false;
-  }
-
-  SerializableToProtobufByteArray(signature, *result.mutable_signature());
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupSetStateFromSeed initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetLookupSetStateFromSeed(const bytes& src,
-                                          const unsigned int offset,
-                                          PubKey& lookupPubKey,
-                                          bytes& accountStoreBytes) {
-  LOG_MARKER();
-
-  LookupSetStateFromSeed result;
-
-  google::protobuf::io::ArrayInputStream arrayIn(src.data() + offset,
-                                                 src.size() - offset);
-  google::protobuf::io::CodedInputStream codedIn(&arrayIn);
-  codedIn.SetTotalBytesLimit(MAX_READ_WATERMARK_IN_BYTES,
-                             MAX_READ_WATERMARK_IN_BYTES);
-
-  if (!result.ParseFromCodedStream(&codedIn) ||
-      !codedIn.ConsumedEntireMessage() || !result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupSetStateFromSeed initialization failed");
-    return false;
-  }
-
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
-  Signature signature;
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-
-  copy(result.accountstore().data().begin(), result.accountstore().data().end(),
-       back_inserter(accountStoreBytes));
-
-  if (!Schnorr::Verify(accountStoreBytes, signature, lookupPubKey)) {
-    LOG_GENERAL(WARNING, "Invalid signature in accounts");
-    return false;
-  }
-
-  return true;
-}
-
 bool Messenger::SetLookupSetLookupOffline(bytes& dst, const unsigned int offset,
                                           const uint8_t msgType,
                                           const uint32_t listenPort,
@@ -8006,9 +7550,7 @@ bool Messenger::GetLookupGetDirectoryBlocksFromSeed(const bytes& src,
 bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
     bytes& dst, const unsigned int offset,
     const uint32_t& shardingStructureVersion,
-    const vector<
-        boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
-        directoryBlocks,
+    const vector<boost::variant<DSBlock, VCBlock>>& directoryBlocks,
     const uint64_t& indexNum, const PairOfKey& lookupKey) {
   LookupSetDirectoryBlocksFromSeed result;
 
@@ -8024,15 +7566,6 @@ bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
     } else if (dirblock.type() == typeid(VCBlock)) {
       VCBlockToProtobuf(get<VCBlock>(dirblock),
                         *proto_dir_blocks->mutable_vcblock());
-    } else if (dirblock.type() == typeid(FallbackBlockWShardingStructure)) {
-      FallbackBlockToProtobuf(
-          get<FallbackBlockWShardingStructure>(dirblock).m_fallbackblock,
-          *proto_dir_blocks->mutable_fallbackblockwshard()
-               ->mutable_fallbackblock());
-      ShardingStructureToProtobuf(
-          shardingStructureVersion,
-          get<FallbackBlockWShardingStructure>(dirblock).m_shards,
-          *proto_dir_blocks->mutable_fallbackblockwshard()->mutable_sharding());
     }
   }
 
@@ -8064,8 +7597,7 @@ bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
 bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
     const bytes& src, const unsigned int offset,
     uint32_t& shardingStructureVersion,
-    vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
-        directoryBlocks,
+    vector<boost::variant<DSBlock, VCBlock>>& directoryBlocks,
     uint64_t& indexNum, PubKey& pubKey) {
   LookupSetDirectoryBlocksFromSeed result;
 
@@ -8101,7 +7633,6 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
   for (const auto& dirblock : result.data().dirblocks()) {
     DSBlock dsblock;
     VCBlock vcblock;
-    FallbackBlockWShardingStructure fallbackblockwshard;
     switch (dirblock.directoryblock_case()) {
       case ProtoSingleDirectoryBlock::DirectoryblockCase::kDsblock:
         if (!dirblock.dsblock().IsInitialized()) {
@@ -8124,25 +7655,6 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
           return false;
         }
         directoryBlocks.emplace_back(vcblock);
-        break;
-      case ProtoSingleDirectoryBlock::DirectoryblockCase::kFallbackblockwshard:
-        if (!dirblock.fallbackblockwshard().IsInitialized()) {
-          LOG_GENERAL(WARNING, "FallbackBlock not initialized");
-          return false;
-        }
-        if (!ProtobufToFallbackBlock(
-                dirblock.fallbackblockwshard().fallbackblock(),
-                fallbackblockwshard.m_fallbackblock)) {
-          LOG_GENERAL(WARNING, "ProtobufToFallbackBlock failed");
-          return false;
-        }
-        if (!ProtobufToShardingStructure(
-                dirblock.fallbackblockwshard().sharding(),
-                shardingStructureVersion, fallbackblockwshard.m_shards)) {
-          LOG_GENERAL(WARNING, "ProtobufToShardingStructure failed");
-          return false;
-        }
-        directoryBlocks.emplace_back(fallbackblockwshard);
         break;
       case ProtoSingleDirectoryBlock::DirectoryblockCase::
           DIRECTORYBLOCK_NOT_SET:
@@ -9482,71 +8994,6 @@ bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
   return true;
 }
 
-bool Messenger::SetSeedNodeHistoricalDB(bytes& dst, const unsigned int offset,
-                                        const PairOfKey& archivalKeys,
-                                        const uint32_t code,
-                                        const string& path) {
-  SeedSetHistoricalDB result;
-
-  result.mutable_data()->set_code(code);
-  result.mutable_data()->set_path(path);
-  SerializableToProtobufByteArray(archivalKeys.second,
-                                  *result.mutable_pubkey());
-
-  if (!result.data().IsInitialized()) {
-    LOG_GENERAL(WARNING, "SeedSetHistoricalDB.Data initialization failed");
-    return false;
-  }
-
-  bytes tmp(result.data().ByteSize());
-  result.data().SerializeToArray(tmp.data(), tmp.size());
-  Signature signature;
-  if (!Schnorr::Sign(tmp, archivalKeys.first, archivalKeys.second, signature)) {
-    LOG_GENERAL(WARNING, "Failed to sign SeedSetHistoricalDB");
-    return false;
-  }
-  SerializableToProtobufByteArray(signature, *result.mutable_signature());
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "SeedSetHistoricalDB initialization failed");
-    return false;
-  }
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetSeedNodeHistoricalDB(const bytes& src,
-                                        const unsigned int offset,
-                                        PubKey& archivalPubKey, uint32_t& code,
-                                        string& path) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  SeedSetHistoricalDB result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "SeedSetHistoricalDB initialization failed ");
-    return false;
-  }
-
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), archivalPubKey);
-  Signature signature;
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  bytes tmp(result.data().ByteSize());
-  result.data().SerializeToArray(tmp.data(), tmp.size());
-  if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, archivalPubKey)) {
-    LOG_GENERAL(WARNING, "SeedSetHistoricalDB signature wrong");
-    return false;
-  }
-  code = result.data().code();
-  path = result.data().path();
-
-  return true;
-}
-
 bool Messenger::SetNodeRemoveFromBlacklist(bytes& dst,
                                            const unsigned int offset,
                                            const PairOfKey& myKey,
@@ -9945,6 +9392,87 @@ bool Messenger::GetMinerInfoShards(const bytes& src, const unsigned int offset,
     }
     minerInfo.m_shards.emplace_back(shard);
   }
+
+  return true;
+}
+
+bool Messenger::SetMicroBlockKey(bytes& dst, const unsigned int offset,
+                                 const uint64_t& epochNum,
+                                 const uint32_t& shardID) {
+  ProtoMicroBlockKey result;
+  result.set_epochnum(epochNum);
+  result.set_shardid(shardID);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoMicroBlockKey initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetMicroBlockKey(const bytes& src, const unsigned int offset,
+                                 uint64_t& epochNum, uint32_t& shardID) {
+  if (src.size() == 0) {
+    LOG_GENERAL(INFO, "Empty ProtoMicroBlockKey");
+    return false;
+  }
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ProtoMicroBlockKey result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoMicroBlockKey initialization failed");
+    return false;
+  }
+
+  epochNum = result.epochnum();
+  shardID = result.shardid();
+
+  return true;
+}
+
+bool Messenger::SetTxEpoch(bytes& dst, const unsigned int offset,
+                           const uint64_t& epochNum) {
+  ProtoTxEpoch result;
+  result.set_epochnum(epochNum);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoTxEpoch initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetTxEpoch(const bytes& src, const unsigned int offset,
+                           uint64_t& epochNum) {
+  if (src.size() == 0) {
+    LOG_GENERAL(INFO, "Empty TxEpoch");
+    return true;
+  }
+
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ProtoTxEpoch result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoTxEpoch initialization failed");
+    return false;
+  }
+
+  epochNum = result.epochnum();
 
   return true;
 }

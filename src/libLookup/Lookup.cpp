@@ -37,7 +37,6 @@
 #include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libData/BlockData/Block.h"
-#include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
@@ -690,23 +689,6 @@ bytes Lookup::ComposeGetDSInfoMessage(bool initialDS) {
   return getDSNodesMessage;
 }
 
-bytes Lookup::ComposeGetStateMessage() {
-  LOG_MARKER();
-
-  bytes getStateMessage = {MessageType::LOOKUP,
-                           LookupInstructionType::GETSTATEFROMSEED};
-
-  if (!Messenger::SetLookupGetStateFromSeed(
-          getStateMessage, MessageOffset::BODY,
-          m_mediator.m_selfPeer.m_listenPortHost)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::SetLookupGetStateFromSeed failed.");
-    return {};
-  }
-
-  return getStateMessage;
-}
-
 bool Lookup::GetDSInfoFromSeedNodes() {
   LOG_MARKER();
   if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !MULTIPLIER_SYNC_MODE) {
@@ -720,11 +702,6 @@ bool Lookup::GetDSInfoFromSeedNodes() {
 bool Lookup::GetDSInfoFromLookupNodes(bool initialDS) {
   LOG_MARKER();
   SendMessageToRandomLookupNode(ComposeGetDSInfoMessage(initialDS));
-  return true;
-}
-
-bool Lookup::GetStateFromSeedNodes() {
-  SendMessageToRandomSeedNode(ComposeGetStateMessage());
   return true;
 }
 
@@ -1183,6 +1160,16 @@ bool Lookup::ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
 
   uint32_t portNo = 0;
   bool initialDS;
+
+  if (!ARCHIVAL_LOOKUP &&
+      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+    LOG_GENERAL(
+        WARNING,
+        "Requesting IP : "
+            << from.GetPrintableIPAddress()
+            << " is not in whitelisted seeds IP list. Ignore the request");
+    return false;
+  }
 
   if (!Messenger::GetLookupGetDSInfoFromSeed(message, offset, portNo,
                                              initialDS)) {
@@ -1762,6 +1749,16 @@ bool Lookup::ProcessGetDSBlockFromSeed(const bytes& message,
   uint32_t portNo = 0;
   bool includeMinerInfo = false;
 
+  if (!ARCHIVAL_LOOKUP &&
+      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+    LOG_GENERAL(
+        WARNING,
+        "Requesting IP : "
+            << from.GetPrintableIPAddress()
+            << " is not in whitelisted seeds IP list. Ignore the request");
+    return false;
+  }
+
   if (!Messenger::GetLookupGetDSBlockFromSeed(message, offset, lowBlockNum,
                                               highBlockNum, portNo,
                                               includeMinerInfo)) {
@@ -1903,42 +1900,6 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
   }
 }
 
-bool Lookup::ProcessGetStateFromSeed(const bytes& message, unsigned int offset,
-                                     const Peer& from) {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::ProcessGetStateFromSeed not expected to be called "
-                "from other than the LookUp node.");
-    return true;
-  }
-
-  LOG_MARKER();
-
-  uint32_t portNo = 0;
-
-  if (!Messenger::GetLookupGetStateFromSeed(message, offset, portNo)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::GetLookupGetStateFromSeed failed.");
-    return false;
-  }
-
-  Peer requestingNode(from.m_ipAddress, portNo);
-  bytes setStateMessage = {MessageType::LOOKUP,
-                           LookupInstructionType::SETSTATEFROMSEED};
-
-  if (!Messenger::SetLookupSetStateFromSeed(
-          setStateMessage, MessageOffset::BODY, m_mediator.m_selfKey,
-          AccountStore::GetInstance())) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::SetLookupSetStateFromSeed failed.");
-    return false;
-  }
-
-  P2PComm::GetInstance().SendMessage(requestingNode, setStateMessage);
-
-  return true;
-}
-
 // TODO: Refactor the code to remove the following assumption
 // lowBlockNum = 1 => Latest block number
 // lowBlockNum = 0 => lowBlockNum set to 1
@@ -1957,6 +1918,16 @@ bool Lookup::ProcessGetTxBlockFromSeed(const bytes& message,
   uint64_t lowBlockNum = 0;
   uint64_t highBlockNum = 0;
   uint32_t portNo = 0;
+
+  if (!ARCHIVAL_LOOKUP &&
+      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+    LOG_GENERAL(
+        WARNING,
+        "Requesting IP : "
+            << from.GetPrintableIPAddress()
+            << " is not in whitelisted seeds IP list. Ignore the request");
+    return false;
+  }
 
   if (!Messenger::GetLookupGetTxBlockFromSeed(message, offset, lowBlockNum,
                                               highBlockNum, portNo)) {
@@ -2070,6 +2041,16 @@ bool Lookup::ProcessGetStateDeltaFromSeed(const bytes& message,
   uint64_t blockNum = 0;
   uint32_t portNo = 0;
 
+  if (!ARCHIVAL_LOOKUP &&
+      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+    LOG_GENERAL(
+        WARNING,
+        "Requesting IP : "
+            << from.GetPrintableIPAddress()
+            << " is not in whitelisted seeds IP list. Ignore the request");
+    return false;
+  }
+
   if (!Messenger::GetLookupGetStateDeltaFromSeed(message, offset, blockNum,
                                                  portNo)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
@@ -2123,6 +2104,16 @@ bool Lookup::ProcessGetStateDeltasFromSeed(const bytes& message,
   uint64_t lowBlockNum = 0;
   uint64_t highBlockNum = 0;
   uint32_t portNo = 0;
+
+  if (!ARCHIVAL_LOOKUP &&
+      !Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
+    LOG_GENERAL(
+        WARNING,
+        "Requesting IP : "
+            << from.GetPrintableIPAddress()
+            << " is not in whitelisted seeds IP list. Ignore the request");
+    return false;
+  }
 
   if (!Messenger::GetLookupGetStateDeltasFromSeed(message, offset, lowBlockNum,
                                                   highBlockNum, portNo)) {
@@ -2274,8 +2265,9 @@ bool Lookup::AddMicroBlockToStorage(const MicroBlock& microblock) {
 
   bytes body;
   microblock.Serialize(body, 0);
-  if (!BlockStorage::GetBlockStorage().PutMicroBlock(microblock.GetBlockHash(),
-                                                     body)) {
+  if (!BlockStorage::GetBlockStorage().PutMicroBlock(
+          microblock.GetBlockHash(), microblock.GetHeader().GetEpochNum(),
+          microblock.GetHeader().GetShardId(), body)) {
     LOG_GENERAL(WARNING, "Failed to put microblock in body");
     return false;
   }
@@ -2665,6 +2657,13 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
   return true;
 }
 
+bool Lookup::NoOp([[gnu::unused]] const bytes& message,
+                  [[gnu::unused]] unsigned int offset,
+                  [[gnu::unused]] const Peer& from) {
+  LOG_MARKER();
+  return true;
+}
+
 bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
                                       const Peer& from) {
   LOG_MARKER();
@@ -2840,8 +2839,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
     // only process DS block for lookup nodes, otherwise for normal node
     // it's purpose is just for indication if new DS block is mined or not
     if (LOOKUP_NODE_MODE) {
-      vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
-          dirBlocks;
+      vector<boost::variant<DSBlock, VCBlock>> dirBlocks;
       for (const auto& dsblock : dsBlocks) {
         if (dsblock.GetHeader().GetBlockNum() < latestSynBlockNum) {
           // skip as already I have them
@@ -2976,7 +2974,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const bytes& message,
     num_block = num_block % NUM_FINAL_BLOCK_PER_POW;
     auto now = std::chrono::system_clock::now();
     auto wait_seconds = chrono::seconds(
-        ((TX_DISTRIBUTE_TIME_IN_MS + ANNOUNCEMENT_DELAY_IN_MS) / 1000) *
+        static_cast<unsigned int>(m_mediator.m_aveBlockTimeInSeconds) *
         num_block);
 
     GetWorkServer::GetInstance().SetNextPoWTime(now + wait_seconds);
@@ -3044,7 +3042,7 @@ bool Lookup::GetDSInfo() {
   LOG_MARKER();
   m_dsInfoWaitingNotifying = true;
 
-  if (ARCHIVAL_LOOKUP) {
+  if (!LOOKUP_NODE_MODE || ARCHIVAL_LOOKUP) {
     GetDSInfoFromSeedNodes();
   } else {
     GetDSInfoFromLookupNodes();
@@ -3551,127 +3549,6 @@ bool Lookup::ProcessSetStateDeltasFromSeed(const bytes& message,
   return true;
 }
 
-bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
-                                     [[gnu::unused]] const Peer& from) {
-  LOG_MARKER();
-
-  if (AlreadyJoinedNetwork()) {
-    return true;
-  }
-
-  unique_lock<mutex> lock(m_mutexSetState);
-  PubKey senderPubKey;
-  bytes accountStoreBytes;
-  if (!Messenger::GetLookupSetStateFromSeed(message, offset, senderPubKey,
-                                            accountStoreBytes)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Messenger::GetLookupSetStateFromSeed failed.");
-    return false;
-  }
-
-  if (!VerifySenderNode(GetSeedNodes(), senderPubKey)) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "The message sender pubkey: "
-                  << senderPubKey << " is not in my lookup node list.");
-    return false;
-  }
-
-  if (!AccountStore::GetInstance().Deserialize(accountStoreBytes, 0)) {
-    LOG_GENERAL(WARNING, "Deserialize AccountStore Failed");
-    return false;
-  }
-
-  if (!LOOKUP_NODE_MODE) {
-    if (m_syncType == SyncType::NEW_SYNC ||
-        m_syncType == SyncType::NORMAL_SYNC) {
-      GetDSInfo();
-
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "DSInfo received -> Ask lookup to let me know when to "
-                "start PoW");
-
-      // Ask lookup to inform me when it's time to do PoW
-      bytes getpowsubmission_message = {
-          MessageType::LOOKUP, LookupInstructionType::GETSTARTPOWFROMSEED};
-
-      if (!Messenger::SetLookupGetStartPoWFromSeed(
-              getpowsubmission_message, MessageOffset::BODY,
-              m_mediator.m_selfPeer.m_listenPortHost,
-              m_mediator.m_dsBlockChain.GetLastBlock()
-                  .GetHeader()
-                  .GetBlockNum(),
-              m_mediator.m_selfKey)) {
-        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-                  "Messenger::SetLookupGetStartPoWFromSeed failed.");
-        return false;
-      }
-
-      m_mediator.m_lookup->SendMessageToRandomSeedNode(
-          getpowsubmission_message);
-    } else if (m_syncType == SyncType::DS_SYNC ||
-               m_syncType == SyncType::GUARD_DS_SYNC) {
-      if (!m_currDSExpired &&
-          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() <
-              m_mediator.m_currentEpochNum) {
-        m_isFirstLoop = true;
-        SetSyncType(SyncType::NO_SYNC);
-        m_mediator.m_ds->FinishRejoinAsDS();
-      }
-
-      m_currDSExpired = false;
-    }
-  } else if (m_syncType == SyncType::LOOKUP_SYNC) {
-    if (!m_currDSExpired) {
-      if (FinishRejoinAsLookup()) {
-        SetSyncType(SyncType::NO_SYNC);
-
-        if (m_lookupServer) {
-          if (m_lookupServer->StartListening()) {
-            LOG_GENERAL(INFO, "API Server started to listen again");
-          } else {
-            LOG_GENERAL(WARNING, "API Server couldn't start");
-          }
-        }
-
-        if (m_stakingServer) {
-          if (m_stakingServer->StartListening()) {
-            LOG_GENERAL(INFO, "Staking Server started to listen again");
-          } else {
-            LOG_GENERAL(WARNING, "Staking Server couldn't start");
-          }
-        }
-      }
-    }
-    m_currDSExpired = false;
-  } else if (LOOKUP_NODE_MODE && m_syncType == SyncType::NEW_LOOKUP_SYNC) {
-    GetDSInfo();
-
-    if (!m_currDSExpired) {
-      SetSyncType(SyncType::NO_SYNC);
-      m_isFirstLoop = true;
-
-      if (m_lookupServer) {
-        if (m_lookupServer->StartListening()) {
-          LOG_GENERAL(INFO, "API Server started to listen again");
-        } else {
-          LOG_GENERAL(WARNING, "API Server couldn't start");
-        }
-      }
-
-      if (m_stakingServer) {
-        if (m_stakingServer->StartListening()) {
-          LOG_GENERAL(INFO, "Staking Server started to listen again");
-        } else {
-          LOG_GENERAL(WARNING, "Staking Server couldn't start");
-        }
-      }
-    }
-    m_currDSExpired = false;
-  }
-
-  return true;
-}
-
 bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
                                       [[gnu::unused]] unsigned int offset,
                                       [[gnu::unused]] const Peer& from) {
@@ -3883,12 +3760,22 @@ bool Lookup::ProcessSetTxnsFromLookup(const bytes& message, unsigned int offset,
   LOG_GENERAL(INFO,
               "Received " << txns.size() << " txns for microblock :" << mbHash);
 
+  uint64_t epochNum = 0;
+  {
+    MicroBlockSharedPtr microBlockPtr;
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbHash, microBlockPtr)) {
+      LOG_GENERAL(WARNING, "Failed to get MB with hash " << mbHash);
+      return false;
+    }
+    epochNum = microBlockPtr->GetHeader().GetEpochNum();
+  }
+
   for (const auto& txn : txns) {
     bytes serializedTxBody;
     txn.Serialize(serializedTxBody, 0);
 
     if (!BlockStorage::GetBlockStorage().PutTxBody(
-            txn.GetTransaction().GetTranID(), serializedTxBody)) {
+            epochNum, txn.GetTransaction().GetTranID(), serializedTxBody)) {
       LOG_GENERAL(WARNING, "BlockStorage::PutTxBody failed "
                                << txn.GetTransaction().GetTranID());
       continue;  // Transaction already existed locally. Move on so as to delete
@@ -4758,7 +4645,7 @@ void Lookup::RejoinAsNewLookup(bool fromLookup) {
           LOG_GENERAL(INFO,
                       "I am lagging behind by ds epoch! Will rejoin again!");
           m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
-          RejoinAsLookup(false);
+          RejoinAsNewLookup(false);
         }
       };
       DetachedFunction(1, func2);
@@ -4987,8 +4874,7 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
   bytes msg = {MessageType::LOOKUP,
                LookupInstructionType::SETDIRBLOCKSFROMSEED};
 
-  vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
-      dirBlocks;
+  vector<boost::variant<DSBlock, VCBlock>> dirBlocks;
 
   for (uint64_t i = index_num;
        i <= m_mediator.m_blocklinkchain.GetLatestIndex(); i++) {
@@ -5006,15 +4892,6 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
         continue;
       }
       dirBlocks.emplace_back(*vcblockptr);
-    } else if (get<BlockLinkIndex::BLOCKTYPE>(b) == BlockType::FB) {
-      FallbackBlockSharedPtr fallbackwsharding;
-      if (!BlockStorage::GetBlockStorage().GetFallbackBlock(
-              get<BlockLinkIndex::BLOCKHASH>(b), fallbackwsharding)) {
-        LOG_GENERAL(WARNING, "could not get fb block "
-                                 << get<BlockLinkIndex::BLOCKHASH>(b));
-        continue;
-      }
-      dirBlocks.emplace_back(*fallbackwsharding);
     }
   }
 
@@ -5086,8 +4963,7 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
 bool Lookup::ProcessSetDirectoryBlocksFromSeed(
     const bytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from) {
-  vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
-      dirBlocks;
+  vector<boost::variant<DSBlock, VCBlock>> dirBlocks;
   uint64_t index_num;
   uint32_t shardingStructureVersion = 0;
   PubKey senderPubKey;
@@ -5289,8 +5165,8 @@ bool Lookup::Execute(const bytes& message, unsigned int offset,
       &Lookup::ProcessSetDSBlockFromSeed,
       &Lookup::ProcessGetTxBlockFromSeed,
       &Lookup::ProcessSetTxBlockFromSeed,
-      &Lookup::ProcessGetStateFromSeed,
-      &Lookup::ProcessSetStateFromSeed,
+      &Lookup::NoOp,  // Previously for GETSTATEFROMSEED
+      &Lookup::NoOp,  // Previously for SETSTATEFROMSEED
       &Lookup::ProcessSetLookupOffline,
       &Lookup::ProcessSetLookupOnline,
       &Lookup::ProcessGetOfflineLookups,
@@ -5313,7 +5189,7 @@ bool Lookup::Execute(const bytes& message, unsigned int offset,
       &Lookup::ProcessVCGetLatestDSTxBlockFromSeed,
       &Lookup::ProcessForwardTxn,
       &Lookup::ProcessGetDSGuardNetworkInfo,
-      &Lookup::ProcessSetHistoricalDB,
+      &Lookup::NoOp,  // Previously for SETHISTORICALDB
       &Lookup::ProcessGetCosigsRewardsFromSeed,
       &Lookup::ProcessSetMinerInfoFromSeed,
       &Lookup::ProcessGetDSBlockFromL2l,
@@ -5417,8 +5293,6 @@ bool Lookup::DeleteTxnShardMap(uint32_t shardId) {
                 "other than the LookUp node.");
     return true;
   }
-
-  lock_guard<mutex> g(m_txnShardMapMutex);
 
   m_txnShardMap[shardId].clear();
 
@@ -5977,47 +5851,6 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(const bytes& message,
   LOG_GENERAL(INFO, "[update ds guard] Sending guard node update info to "
                         << requestingNode);
   P2PComm::GetInstance().SendMessage(requestingNode, setNewDSGuardNetworkInfo);
-  return true;
-}
-
-bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
-                                    [[gnu::unused]] const Peer& from) {
-  string path = "";
-  uint32_t code = 0;
-  PubKey archPubkey;
-
-  if (!Messenger::GetSeedNodeHistoricalDB(message, offset, archPubkey, code,
-                                          path)) {
-    LOG_GENERAL(WARNING, "GetSeedNodeHistoricalDB failed");
-    return false;
-  }
-
-  bytes verifierPubkeyBytes;
-  if (!DataConversion::HexStrToUint8Vec(VERIFIER_PUBKEY, verifierPubkeyBytes)) {
-    LOG_GENERAL(WARNING, "VERIFIER_PUBKEY is not a hex str");
-    return false;
-  }
-
-  if (!(archPubkey == PubKey(verifierPubkeyBytes, 0))) {
-    LOG_GENERAL(WARNING, "PubKey not of verifier");
-    return false;
-  }
-
-  if (code == 1) {
-    if (!BlockStorage::GetBlockStorage().InitiateHistoricalDB(VERIFIER_PATH +
-                                                              path)) {
-      LOG_GENERAL(WARNING,
-                  "BlockStorage::InitiateHistoricalDB failed, path: " << path);
-      return false;
-    }
-
-    m_historicalDB = true;
-  } else {
-    LOG_GENERAL(WARNING, "Code is errored " << code);
-    return false;
-  }
-
-  LOG_GENERAL(INFO, "HistDB Success");
   return true;
 }
 

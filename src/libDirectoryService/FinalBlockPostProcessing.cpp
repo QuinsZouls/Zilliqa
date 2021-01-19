@@ -59,7 +59,9 @@ bool DirectoryService::StoreFinalBlockToDisk() {
     bytes body;
     m_mediator.m_node->m_microblock->Serialize(body, 0);
     if (!BlockStorage::GetBlockStorage().PutMicroBlock(
-            m_mediator.m_node->m_microblock->GetBlockHash(), body)) {
+            m_mediator.m_node->m_microblock->GetBlockHash(),
+            m_mediator.m_node->m_microblock->GetHeader().GetEpochNum(),
+            m_mediator.m_node->m_microblock->GetHeader().GetShardId(), body)) {
       LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
       return false;
     }
@@ -186,12 +188,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
         LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
         return;
       } else {
-        if (!BlockStorage::GetBlockStorage().PutMetadata(
-                MetaType::DSINCOMPLETED, {'0'})) {
-          LOG_GENERAL(WARNING,
-                      "BlockStorage::PutMetadata (DSINCOMPLETED) '0' failed");
-          return;
-        }
         if (!BlockStorage::GetBlockStorage().PutLatestEpochStatesUpdated(
                 m_mediator.m_currentEpochNum)) {
           LOG_GENERAL(WARNING, "BlockStorage::PutLatestEpochStatesUpdated "

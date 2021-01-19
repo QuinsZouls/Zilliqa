@@ -1,4 +1,4 @@
-# Zilliqa (codename _Durian_)
+# Zilliqa
 
 <p align="center">
     <img src="https://github.com/Zilliqa/Zilliqa/blob/master/img/zilliqa-logo-color.png" width="200" height="200">
@@ -15,48 +15,59 @@
 Zilliqa is a scalable smart contract platform that aims to tackle the congestion issue plaguing the blockchain industry. Zilliqa utilises a unique sharded architecture to achieve parallel processing of transactions while maintaining a large number of public nodes. Hence, Zilliqa is a blockchain capable of reaching high throughput and processing more complex computations while remaining decentralised and secure.
 
 * If you’re interested in mining Zilliqa, see here: https://dev.zilliqa.com/docs/miners/mining-getting-started/.
-* If you’d like to use the interface with Zilliqa nodes to transfer ZIL and deploy/call smart contracts, see here: https://apidocs.zilliqa.com/.
+* If you’d like to use the interface with Zilliqa nodes to transfer ZIL and deploy/call smart contracts, see here: https://dev.zilliqa.com/docs/apis/api-introduction.
+* If you’re interested more about the core protocol, see the [developer portal](https://dev.zilliqa.com/docs/contributors/contribute-buildzil).
 * If you’re interested in hacking on the Zilliqa code base, see the [Coding Guidelines](https://github.com/Zilliqa/Zilliqa/wiki/Coding-Guidelines).
 
-> **NOTE**: The `master` branch is not for production as development is currently being worked constantly, please use the `tag` releases if you wish to work on the version of Zilliqa client that is running live on the Zilliqa blockchain. (Current live version `tag` release is `v6.3.0`)
+> **NOTE**: The `master` branch is not for production as development is currently being worked constantly, please use the `tag` releases if you wish to work on the version of Zilliqa client that is running live on the Zilliqa blockchain.
 
 ## Zilliqa Mainnet
+
+The current live version on the Zilliqa Mainnet is Zilliqa [v7.0.2](https://github.com/Zilliqa/Zilliqa/releases/tag/v7.0.2) and Scilla [v0.9.1](https://github.com/Zilliqa/scilla/releases/tag/v0.9.1).
 
 |          | URL(s) |
 |:---------|:-------|
 | **API URL** | `https://api.zilliqa.com/` |
-| **Block Explorer** | [**Link**](https://viewblock.io/zilliqa) |
+| **Block Explorer** | [**Viewblock**](https://viewblock.io/zilliqa) <br> [**DEVEX**](https://devex.zilliqa.com/) |
 
 ## Developer Testnet
+
+The current live version on the Developer Testnet is Zilliqa [v7.0.0-beta.4](https://github.com/Zilliqa/Zilliqa/releases/tag/v7.0.0-beta.4) and Scilla [v0.9.1-alpha.0](https://github.com/Zilliqa/scilla/releases/tag/v0.9.1-alpha.0).
 
 |          | URL(s) |
 |:---------|:-------|
 | **API URL** | `https://dev-api.zilliqa.com/` |
-| **Block Explorer** | [**Link**](https://dev-explorer.zilliqa.com) |
+| **Block Explorer** | [**Viewblock**](https://dev-explorer.zilliqa.com) <br> [**DEVEX**](https://devex.zilliqa.com/?network=https%3A%2F%2Fdev-api.zilliqa.com) |
 | **Faucet** | [**Link**](https://dev-wallet.zilliqa.com) |
 
-## Available features
+## Zilliqa Improvement Proposal (ZIP)
+
+The Zilliqa Improvement Proposals (ZIPs) are the core protocol standards for the Zilliqa platform.To view or contribute to ZIP, please visit https://github.com/Zilliqa/zip
+
+## Available Features
 
 The current release has the following features implemented:
 
-* Network sharding
-* Transaction sharding
-* Ethash Proof of Work (PoW) for joining the network
-* GPU (OpenCL and CUDA) for PoW
-* Gas rewards and pricer
-* Coinbase rewards
-* [EC-Schnorr signature](https://en.wikipedia.org/wiki/Schnorr_signature)
-* pBFT Consensus mechanism
+* [Network sharding](https://dev.zilliqa.com/docs/basics/basics-zil-sharding#network-sharding)
+* [Transaction sharding](https://dev.zilliqa.com/docs/basics/basics-zil-sharding#transaction-sharding)
+* [Ethash Proof of Work (PoW) for joining the network](https://dev.zilliqa.com/docs/contributors/core-gossip)
+* [GPU (OpenCL and CUDA) for PoW](https://dev.zilliqa.com/docs/contributors/core-pow#gpu-mine)
+* [Block rewarding mechanism](https://dev.zilliqa.com/docs/basics/basics-zil-reward/)
+* [Gas pricer](https://dev.zilliqa.com/docs/contributors/core-global-gas-price)
+* [Coinbase rewards](https://dev.zilliqa.com/docs/contributors/core-coinbase)
+* [EC-Schnorr signature](https://github.com/Zilliqa/schnorr)
+* [pBFT Consensus mechanism](https://dev.zilliqa.com/docs/contributors/core-consensus)
 * Data layer and accounts store
 * [Smart contract layer](https://scilla.readthedocs.io)
 * State delta forwarding
 * Lookup nodes and Seed nodes for receiving and dispatching transactions
 * Persistent storage for transactions and state
 * S3 storage retrieval from archival nodes
-* View change mechanism
+* [View change mechanism](https://dev.zilliqa.com/docs/contributors/core-view-change)
 * Node recovery mechanism
 * Protocol upgrade mechanism
-* Gossip protocol for network message broadcasting
+* [Gossip protocol for network message broadcasting](https://dev.zilliqa.com/docs/contributors/core-gossip)
+* [Seed Node Staking](https://dev.zilliqa.com/docs/staking/staking-overview)
 
 In the coming months, we plan to have the following features:
 
@@ -65,13 +76,15 @@ In the coming months, we plan to have the following features:
 * More operating system support
 * And much more...
 
-## Minimum system requirements
+## Minimum System Requirements
 
-To run Zilliqa, we recommend the minimum system requirements specified in our [Mining](https://github.com/Zilliqa/Zilliqa/wiki/Mining#hardware-requirement) page.
+To run Zilliqa, we recommend the minimum system requirements specified in our [Mining](https://dev.zilliqa.com/docs/miners/mining-zilclient#hardware-requirements) page.
 
 ## Build Dependencies
 
-The current supported version is **Ubuntu 16.04**.
+The officially supported operating system is **Ubuntu 16.04**, until Zilliqa [v6.4.2](https://github.com/Zilliqa/Zilliqa/releases/tag/v6.4.2).
+
+Effective Zilliqa [v7.0.0](https://github.com/Zilliqa/Zilliqa/releases/tag/v7.0.0), the officially supported operating system is **Ubuntu 18.04**. Although Zilliqa continues to be backward compatible with Ubuntu 16.04, we recommend users to upgrade to Ubuntu 18.04 moving forward.
 
 Run the following to install the build dependencies:
 
@@ -116,7 +129,7 @@ Build Zilliqa from the source:
 ```shell
 # download the lastest stable Zilliqa source code
 $ git clone https://github.com/Zilliqa/Zilliqa.git
-$ cd Zilliqa && git checkout tags/v6.3.0
+$ cd Zilliqa && git checkout tags/v7.0.2
 
 # build Zilliqa binary
 $ ./build.sh
@@ -134,7 +147,11 @@ If you want to contribute by submitting code changes in a pull request, perform 
 $ ./build.sh style
 ```
 
-## Boot up a local testnet for development
+## Build Scilla for Smart Contract Execution
+
+The Zilliqa client works together with Scilla for executing smart contracts. Please refer to the [Scilla repository](https://github.com/Zilliqa/scilla) for build and installation instructions.
+
+## Boot Up a Local Testnet for Development
 
 1. Run the local testnet script in `build` directory:
 
@@ -150,11 +167,11 @@ $ ./build.sh style
     $ pkill zilliqa
     ```
 
-## Further enquiries
+## Further Enquiries
 
 |          | Link(s) |
 |:---------|:-------|
 | **Development discussion (discord)** | <a href="https://discord.gg/XMRE9tt" target="_blank"><img src="https://img.shields.io/discord/370992535725932544.svg" /></a> |
 | **Bug report** | <a href="https://github.com/Zilliqa/zilliqa/issues" target="_blank"><img src="https://img.shields.io/github/issues/Zilliqa/zilliqa.svg" /></a> |
 | **Security contact** | `security` :globe_with_meridians: `zilliqa.com` |
-| **Security bug bounty** | https://bugcrowd.com/zilliqa |
+| **Security bug bounty** | Contact security` :globe_with_meridians: `zilliqa.com` for early access to our new security bug bounty program |

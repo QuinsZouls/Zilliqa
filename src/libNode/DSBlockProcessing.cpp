@@ -269,6 +269,7 @@ void Node::StartFirstTxEpoch(bool fbWaitState) {
 
   LOG_MARKER();
   m_requestedForDSGuardNetworkInfoUpdate = false;
+  m_versionChecked = false;
   ResetConsensusId();
   // blacklist pop for shard nodes
   {
@@ -277,7 +278,7 @@ void Node::StartFirstTxEpoch(bool fbWaitState) {
         *m_mediator.m_DSCommittee);
   }
   m_mediator.m_lookup->RemoveSeedNodesFromBlackList();
-  Blacklist::GetInstance().Pop(BLACKLIST_NUM_TO_POP);
+  Blacklist::GetInstance().Clear();
   P2PComm::ClearPeerConnectionCount();
 
   CleanWhitelistReqs();
@@ -337,8 +338,6 @@ void Node::StartFirstTxEpoch(bool fbWaitState) {
     }
   }
 
-  m_justDidFallback = false;
-
   if (BROADCAST_GOSSIP_MODE && !LOOKUP_NODE_MODE) {
     VectorOfNode peers;
     std::vector<PubKey> pubKeys;
@@ -357,9 +356,6 @@ void Node::StartFirstTxEpoch(bool fbWaitState) {
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
     DetachedFunction(1, main_func3);
   }
-
-  FallbackTimerLaunch();
-  FallbackTimerPulse();
 }
 
 void Node::ResetConsensusId() {
@@ -735,9 +731,6 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     if (m_mediator.m_lookup->GetIsServer() && !ARCHIVAL_LOOKUP) {
       m_mediator.m_lookup->SenderTxnBatchThread(oldNumShards, true);
     }
-
-    FallbackTimerLaunch();
-    FallbackTimerPulse();
   }
 
   if (!BlockStorage::GetBlockStorage().PutDSCommittee(

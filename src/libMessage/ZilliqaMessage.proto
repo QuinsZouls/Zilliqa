@@ -26,7 +26,7 @@ message ProtoBlockLink
     // Add new members here
 }
 
-// Used in databases "dsBlocks", "microBlocks", "txBlocks", "VCBlocks", and "Fallbackblock"
+// Used in databases "dsBlocks", "microBlocks", "txBlocks", "VCBlocks"
 message ProtoBlockBase
 {
     message CoSignatures
@@ -221,25 +221,6 @@ message ProtoVCBlock
     // Add new members here
 }
 
-message ProtoFallbackBlock
-{
-    message FallbackBlockHeader
-    {
-        ProtoBlockHeaderBase blockheaderbase = 1;  // Added in: v1.0, Deprecated in: N/A
-        uint64 fallbackdsepochno             = 2;  // Added in: v1.0, Deprecated in: N/A
-        uint64 fallbackepochno               = 3;  // Added in: v1.0, Deprecated in: N/A
-        uint32 fallbackstate                 = 4;  // Added in: v1.0, Deprecated in: N/A, only LSB used
-        bytes stateroothash                  = 5;  // Added in: v1.0, Deprecated in: N/A
-        uint32 leaderconsensusid             = 6;  // Added in: v1.0, Deprecated in: N/A, only lower 2 bytes used
-        ByteArray leadernetworkinfo          = 7;  // Added in: v1.0, Deprecated in: N/A
-        ByteArray leaderpubkey               = 8;  // Added in: v1.0, Deprecated in: N/A
-        uint32 shardid                       = 9;  // Added in: v1.0, Deprecated in: N/A
-        bytes prevhash                       = 10; // Added in: v1.0, Deprecated in: N/A
-    }
-    FallbackBlockHeader header      = 1;
-    ProtoBlockBase blockbase        = 2;
-}
-
 // Used in database "diagnosticNodes"
 message ProtoDiagnosticDataNodes
 {
@@ -293,6 +274,19 @@ message ProtoMinerInfoShards
     }
     repeated Shard shards        = 1;
     // Add new members here
+}
+
+// Used in database "microBlocks"
+message ProtoMicroBlockKey
+{
+    uint64 epochnum = 1;
+    uint32 shardid  = 2;
+}
+
+// Used in database "txEpochs"
+message ProtoTxEpoch
+{
+    uint64 epochnum = 1;
 }
 
 // ============================================================================
@@ -466,19 +460,12 @@ message ProtoSWInfo
     uint32 scillacommit               = 10;
 }
 
-message ProtoFallbackBlockWShardingStructure
-{
-    ProtoFallbackBlock fallbackblock   = 1;
-    ProtoShardingStructure sharding    = 2;
-}
-
 message ProtoSingleDirectoryBlock
 {
     oneof directoryblock
     {
         ProtoDSBlock dsblock                                     = 1;
         ProtoVCBlock vcblock                                     = 2;
-        ProtoFallbackBlockWShardingStructure fallbackblockwshard = 3;
     }
 }
 
@@ -654,21 +641,21 @@ message NodeMicroBlockAnnouncement
     ProtoMicroBlock microblock = 1;
 }
 
-message NodeFallbackBlockAnnouncement
-{
-    ByteArray fallbackblock = 1;
-}
-
-message NodeFallbackBlock
-{
-    ProtoFallbackBlock fallbackblock = 1;
-}
-
 message NodeMissingTxnsErrorMsg
 {
     repeated bytes txnhashes   = 1;
     uint64 epochnum   = 2;
     uint32 listenport = 3;
+}
+
+message NodeGetVersion
+{
+    uint32 listenport = 1;
+}
+
+message NodeSetVersion
+{
+    string version = 1;
 }
 
 // ============================================================================
@@ -801,18 +788,6 @@ message LookupSetStateDeltasFromSeed
     Data data           = 1;
     ByteArray pubkey    = 2;
     ByteArray signature = 3;
-}
-
-message LookupGetStateFromSeed
-{
-    uint32 listenport = 1;
-}
-
-message LookupSetStateFromSeed
-{
-    ByteArray accountstore          = 1;
-    ByteArray pubkey                = 2;
-    ByteArray signature             = 3;
 }
 
 // msgtype is used to prevent replay attacks
@@ -999,7 +974,6 @@ message ConsensusAnnouncement
         NodeMicroBlockAnnouncement microblock = 5;
         DSFinalBlockAnnouncement finalblock   = 6;
         DSVCBlockAnnouncement vcblock         = 7;
-        NodeFallbackBlockAnnouncement fallbackblock = 8;
     }
     ByteArray finalsignature         = 9;
 }
@@ -1203,19 +1177,6 @@ message NodeSetGuardNodeNetworkInfoUpdate
     Data data                              = 1;
     ByteArray lookuppubkey                 = 2;
     ByteArray signature                    = 3;
-}
-
-message SeedSetHistoricalDB
-{
-    message Data
-    {
-        uint32 code            = 1;
-        string path            = 2;
-    }
-    Data data                  = 1;
-    ByteArray pubkey           = 2;
-    ByteArray signature        = 3;
-
 }
 
 // For removing sender from local blacklist

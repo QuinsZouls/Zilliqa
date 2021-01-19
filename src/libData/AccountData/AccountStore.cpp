@@ -21,7 +21,6 @@
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
 #include "libPersistence/BlockStorage.h"
-#include "libPersistence/ContractStorage.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "libPersistence/ScillaMessage.pb.h"
@@ -477,6 +476,8 @@ void AccountStore::RevertCommitTemp() {
 
   ContractStorage2::GetContractStorage().RevertContractStates();
 }
+
+void AccountStore::NotifyTimeoutTemp() { m_accountStoreTemp->NotifyTimeout(); }
 
 bool AccountStore::MigrateContractStates2(
     bool ignoreCheckerFailure, const string& contract_address_output_dir,

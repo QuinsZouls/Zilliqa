@@ -77,6 +77,24 @@ bool Node::StoreFinalBlock(const TxBlock& txBlock) {
     return false;
   }
 
+  // Update average block time except when txblock is first block for the epoch
+  if ((txBlock.GetHeader().GetBlockNum() % NUM_FINAL_BLOCK_PER_POW) > 0) {
+    const uint64_t& timestampBef =
+        m_mediator.m_txBlockChain
+            .GetBlock(txBlock.GetHeader().GetBlockNum() - 1)
+            .GetTimestamp();
+    const uint64_t& timestampNow = txBlock.GetTimestamp();
+    const double lastBlockTimeInSeconds =
+        static_cast<double>(timestampNow - timestampBef) / 1000000;
+    double tmpAveBlockTimeInSeconds = m_mediator.m_aveBlockTimeInSeconds;
+    tmpAveBlockTimeInSeconds -=
+        tmpAveBlockTimeInSeconds / NUM_FINAL_BLOCK_PER_POW;
+    tmpAveBlockTimeInSeconds +=
+        lastBlockTimeInSeconds / NUM_FINAL_BLOCK_PER_POW;
+    m_mediator.m_aveBlockTimeInSeconds =
+        (tmpAveBlockTimeInSeconds < 1) ? 1 : tmpAveBlockTimeInSeconds;
+  }
+
   m_mediator.IncreaseEpochNum();
 
   LOG_STATE(
@@ -977,12 +995,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
           return;
         }
         if (!LOOKUP_NODE_MODE) {
-          if (!BlockStorage::GetBlockStorage().PutMetadata(
-                  MetaType::DSINCOMPLETED, {'0'})) {
-            LOG_GENERAL(WARNING,
-                        "BlockStorage::PutMetadata (DSINCOMPLETED) '0' failed");
-            return;
-          }
           if (!BlockStorage::GetBlockStorage().PutEpochFin(
                   m_mediator.m_currentEpochNum)) {
             LOG_GENERAL(WARNING, "BlockStorage::PutEpochFin failed "
@@ -996,11 +1008,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
                   m_mediator.m_txBlockChain.GetLastBlock()
                       .GetHeader()
                       .GetBlockNum()) == m_unavailableMicroBlocks.end()) {
-            if (!BlockStorage::GetBlockStorage().PutMetadata(
-                    MetaType::DSINCOMPLETED, {'0'})) {
-              LOG_GENERAL(WARNING,
-                          "BlockStorage::PutMetadata DSINCOMPLETED '0' failed");
-            }
             if (!BlockStorage::GetBlockStorage().PutEpochFin(
                     m_mediator.m_currentEpochNum)) {
               LOG_GENERAL(WARNING, "BlockStorage::PutEpochFin failed "
@@ -1080,8 +1087,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
         true);  // except last block
   }
 
-  FallbackTimerPulse();
-
   return true;
 }
 
@@ -1148,6 +1153,8 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
               << "BGN")
   }
 
+  const uint64_t& epochNum = entry.m_microBlock.GetHeader().GetEpochNum();
+
   for (const auto& twr : entry.m_transactions) {
     const auto& txhash = twr.GetTransaction().GetTranID();
     LOG_GENERAL(INFO, "Commit txn " << txhash.hex());
@@ -1170,7 +1177,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
     bytes serializedTxBody;
     twr.Serialize(serializedTxBody, 0);
     if (!BlockStorage::GetBlockStorage().PutTxBody(
-            twr.GetTransaction().GetTranID(), serializedTxBody)) {
+            epochNum, twr.GetTransaction().GetTranID(), serializedTxBody)) {
       LOG_GENERAL(WARNING, "BlockStorage::PutTxBody failed " << txhash);
       return;
     }
@@ -1645,33 +1652,12 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
             m_mediator.m_txBlockChain.GetLastBlock()
                 .GetHeader()
                 .GetStateRootHash()) {
-          if (!BlockStorage::GetBlockStorage().PutMetadata(
-                  MetaType::DSINCOMPLETED, {'0'})) {
-            LOG_GENERAL(WARNING,
-                        "BlockStorage::PutMetadata (DSINCOMPLETED) '0' failed");
-            return false;
-          }
           if (!BlockStorage::GetBlockStorage().PutEpochFin(
                   m_mediator.m_currentEpochNum)) {
             LOG_GENERAL(WARNING,
                         "BlockStorage::PutEpochFin failed "
                             << entry.m_microBlock.GetHeader().GetEpochNum());
             return false;
-          }
-          if (!BlockStorage::GetBlockStorage().ResetDB(
-                  BlockStorage::TX_BODY_TMP)) {
-            LOG_GENERAL(WARNING, "BlockStorage::ResetDB (TX_BODY_TMP) failed");
-          }
-        } else if (epochNum == m_mediator.m_currentEpochNum) {
-          if (!BlockStorage::GetBlockStorage().PutMetadata(
-                  MetaType::DSINCOMPLETED, {'0'})) {
-            LOG_GENERAL(WARNING,
-                        "BlockStorage::PutMetadata (DSINCOMPLETED) '0' failed");
-            return false;
-          }
-          if (!BlockStorage::GetBlockStorage().ResetDB(
-                  BlockStorage::TX_BODY_TMP)) {
-            LOG_GENERAL(WARNING, "BlockStorage::ResetDB (TX_BODY_TMP) failed");
           }
         }
       } else {
@@ -1689,8 +1675,7 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
         const TxBlock& txBlock = m_mediator.m_txBlockChain.GetLastBlock();
         Json::Value j_txnhashes;
         try {
-          j_txnhashes = LookupServer::GetTransactionsForTxBlock(
-              txBlock, m_mediator.m_lookup->m_historicalDB);
+          j_txnhashes = LookupServer::GetTransactionsForTxBlock(txBlock);
         } catch (...) {
           j_txnhashes = Json::arrayValue;
         }
