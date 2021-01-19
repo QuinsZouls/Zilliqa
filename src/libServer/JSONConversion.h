@@ -30,6 +30,9 @@ class JSONConversion {
   // converts a uint32_t array to JSON array containing shard ids
   static const Json::Value convertMicroBlockInfoArraytoJson(
       const std::vector<MicroBlockInfo>& v);
+  // convert a boolean vector to a json boolean vector
+  static const Json::Value convertBooleanVectorToJson(
+      const std::vector<bool>& B);
   // converts a TxBlock to JSON object
   static const Json::Value convertTxBlocktoJson(const TxBlock& txblock);
   // converts raw TxBlock to JSON object (for staking)

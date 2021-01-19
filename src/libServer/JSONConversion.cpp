@@ -49,6 +49,16 @@ const Json::Value JSONConversion::convertMicroBlockInfoArraytoJson(
   return mbInfosJson;
 }
 
+const Json::Value JSONConversion::convertBooleanVectorToJson(
+    const vector<bool>& B) {
+  Json::Value _json = Json::arrayValue;
+
+  for (const auto& i : B) {
+    _json.append(i);
+  }
+  return _json;
+}
+
 const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
   Json::Value ret;
   Json::Value ret_head;
@@ -84,6 +94,8 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
   }
   ret_body["HeaderSign"] = HeaderSignStr;
   ret_body["BlockHash"] = txblock.GetBlockHash().hex();
+
+  ret_body["Bitmap"] = convertBooleanVectorToJson(txblock.GetB2());
 
   ret_body["MicroBlockInfos"] =
       convertMicroBlockInfoArraytoJson(txblock.GetMicroBlockInfos());
@@ -134,9 +146,14 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock) {
   ret_header["DifficultyDS"] = dshead.GetDSDifficulty();
   ret_header["GasPrice"] = dshead.GetGasPrice().str();
   ret_header["PoWWinners"] = Json::Value(Json::arrayValue);
+  ret_header["PoWLoosers"] = Json::Value(Json::arrayValue);
 
   for (const auto& dswinner : dshead.GetDSPoWWinners()) {
     ret_header["PoWWinners"].append(static_cast<string>(dswinner.first));
+  }
+
+  for (const auto& dslooser : dshead.GetDSRemovePubKeys()) {
+    ret_header["PoWLoosers"].append(static_cast<string>(dslooser));
   }
 
   ret_header["Timestamp"] = to_string(dsblock.GetTimestamp());
@@ -159,6 +176,7 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock) {
     ret_header["Governance"].append(_tempGovProposal);
   }
   ret["header"] = ret_header;
+  ret["Bitmap"] = convertBooleanVectorToJson(dsblock.GetB2());
 
   ret["signature"] = ret_sign;
 
