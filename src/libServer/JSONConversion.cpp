@@ -59,7 +59,8 @@ const Json::Value JSONConversion::convertBooleanVectorToJson(
   return _json;
 }
 
-const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
+const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock,
+                                                       bool verbose) {
   Json::Value ret;
   Json::Value ret_head;
   Json::Value ret_body;
@@ -95,7 +96,17 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
   ret_body["HeaderSign"] = HeaderSignStr;
   ret_body["BlockHash"] = txblock.GetBlockHash().hex();
 
-  ret_body["Bitmap"] = convertBooleanVectorToJson(txblock.GetB2());
+  if (verbose) {
+    ret_body["B2"] = convertBooleanVectorToJson(txblock.GetB2());
+    ret_body["B1"] = convertBooleanVectorToJson(txblock.GetB1());
+    string CS1string;
+    if (!DataConversion::SerializableToHexStr(txblock.GetCS1(), CS1string)) {
+      LOG_GENERAL(INFO, "Failed to convert txblock.GetCS1()");
+      CS1string = "";
+    }
+    ret_body["CS1"] = CS1string;
+    ret_head["CommitteeHash"] = txheader.GetCommitteeHash().hex();
+  }
 
   ret_body["MicroBlockInfos"] =
       convertMicroBlockInfoArraytoJson(txblock.GetMicroBlockInfos());
@@ -126,7 +137,8 @@ const Json::Value JSONConversion::convertRawTxBlocktoJson(
   return ret;
 }
 
-const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock) {
+const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock,
+                                                       bool verbose) {
   Json::Value ret;
   Json::Value ret_header;
   Json::Value ret_sign;
@@ -146,14 +158,41 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock) {
   ret_header["DifficultyDS"] = dshead.GetDSDifficulty();
   ret_header["GasPrice"] = dshead.GetGasPrice().str();
   ret_header["PoWWinners"] = Json::Value(Json::arrayValue);
-  ret_header["MembersEjected"] = Json::Value(Json::arrayValue);
 
   for (const auto& dswinner : dshead.GetDSPoWWinners()) {
     ret_header["PoWWinners"].append(static_cast<string>(dswinner.first));
   }
 
-  for (const auto& memEjected : dshead.GetDSRemovePubKeys()) {
-    ret_header["MembersEjected"].append(static_cast<string>(memEjected));
+  if (verbose) {
+    ret_header["MembersEjected"] = Json::Value(Json::arrayValue);
+    for (const auto& memEjected : dshead.GetDSRemovePubKeys()) {
+      ret_header["MembersEjected"].append(static_cast<string>(memEjected));
+    }
+    ret["B2"] = convertBooleanVectorToJson(dsblock.GetB2());
+    ret["B1"] = convertBooleanVectorToJson(dsblock.GetB1());
+
+    string retCS1;
+    if (!DataConversion::SerializableToHexStr(dsblock.GetCS2(), retCS1)) {
+      LOG_GENERAL(INFO, "Failed to convert dsblock.GetCS2()");
+      retCS1 = "";
+    }
+
+    ret["CS1"] = retCS1;
+    ret_header["EpochNum"] = to_string(dshead.GetEpochNum());
+
+    ret_header["SWInfo"] = convertSWInfotoJson(dshead.GetSWInfo());
+    ret_header["Version"] = dshead.GetVersion();
+    ret_header["ShardingHash"] = dshead.GetShardingHash().hex();
+    const auto& reservedField = dshead.GetHashSetReservedField();
+    if (!reservedField.empty()) {
+      string reservedFieldStr;
+      if (!DataConversion::charArrToHexStr(reservedField, reservedFieldStr)) {
+        LOG_GENERAL(INFO, "Failed to convert reservedField");
+        reservedFieldStr = "";
+      }
+      ret_header["ReservedField"] = reservedFieldStr;
+    }
+    ret_header["CommitteeHash"] = dshead.GetCommitteeHash().hex();
   }
 
   ret_header["Timestamp"] = to_string(dsblock.GetTimestamp());
@@ -176,11 +215,34 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock) {
     ret_header["Governance"].append(_tempGovProposal);
   }
   ret["header"] = ret_header;
-  ret["Bitmap"] = convertBooleanVectorToJson(dsblock.GetB2());
 
   ret["signature"] = ret_sign;
 
   return ret;
+}
+
+const Json::Value JSONConversion::convertSWInfotoJson(const SWInfo& swInfo) {
+  Json::Value _json;
+  Json::Value zil_json = Json::Value(Json::arrayValue);
+  Json::Value scilla_json = Json::Value(Json::arrayValue);
+
+  zil_json.append(swInfo.GetZilliqaMajorVersion());
+  zil_json.append(swInfo.GetZilliqaMinorVersion());
+  zil_json.append(swInfo.GetZilliqaFixVersion());
+  zil_json.append(to_string(swInfo.GetZilliqaUpgradeDS()));
+  zil_json.append(swInfo.GetZilliqaCommit());
+
+  _json["Zilliqa"] = zil_json;
+
+  scilla_json.append(swInfo.GetScillaMajorVersion());
+  scilla_json.append(swInfo.GetScillaMinorVersion());
+  scilla_json.append(swInfo.GetScillaFixVersion());
+  scilla_json.append(to_string(swInfo.GetScillaUpgradeDS()));
+  scilla_json.append(swInfo.GetScillaCommit());
+
+  _json["Scilla"] = scilla_json;
+
+  return _json;
 }
 
 const Json::Value JSONConversion::convertRawDSBlocktoJson(
