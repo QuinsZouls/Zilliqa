@@ -146,7 +146,7 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock) {
   ret_header["DifficultyDS"] = dshead.GetDSDifficulty();
   ret_header["GasPrice"] = dshead.GetGasPrice().str();
   ret_header["PoWWinners"] = Json::Value(Json::arrayValue);
-  ret_header["PoWLoosers"] = Json::Value(Json::arrayValue);
+  ret_header["MembersEjected"] = Json::Value(Json::arrayValue);
 
   for (const auto& dswinner : dshead.GetDSPoWWinners()) {
     ret_header["PoWWinners"].append(static_cast<string>(dswinner.first));
