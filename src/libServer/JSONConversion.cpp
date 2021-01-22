@@ -152,8 +152,8 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock) {
     ret_header["PoWWinners"].append(static_cast<string>(dswinner.first));
   }
 
-  for (const auto& dslooser : dshead.GetDSRemovePubKeys()) {
-    ret_header["PoWLoosers"].append(static_cast<string>(dslooser));
+  for (const auto& memEjected : dshead.GetDSRemovePubKeys()) {
+    ret_header["MembersEjected"].append(static_cast<string>(memEjected));
   }
 
   ret_header["Timestamp"] = to_string(dsblock.GetTimestamp());
