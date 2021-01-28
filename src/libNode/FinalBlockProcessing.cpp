@@ -708,7 +708,8 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
   if (!VerifyTimestamp(
           txBlock.GetTimestamp(),
           CONSENSUS_OBJECT_TIMEOUT + MICROBLOCK_TIMEOUT +
-              (TX_DISTRIBUTE_TIME_IN_MS + ANNOUNCEMENT_DELAY_IN_MS) / 1000)) {
+              (TX_DISTRIBUTE_TIME_IN_MS + DS_ANNOUNCEMENT_DELAY_IN_MS) /
+                  1000)) {
     return false;
   }
 

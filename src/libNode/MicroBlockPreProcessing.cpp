@@ -348,10 +348,13 @@ bool Node::OnCommitFailure([
 
 void Node::NotifyTimeout(bool& txnProcTimeout) {
   int timeout_time = std::max(
-      0,
-      ((int)MICROBLOCK_TIMEOUT -
-       ((int)TX_DISTRIBUTE_TIME_IN_MS + (int)ANNOUNCEMENT_DELAY_IN_MS) / 1000 -
-       (int)CONSENSUS_OBJECT_TIMEOUT));
+      0, ((int)MICROBLOCK_TIMEOUT -
+          ((int)TX_DISTRIBUTE_TIME_IN_MS +
+           (int)((m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
+                     ? SHARD_ANNOUNCEMENT_DELAY_IN_MS
+                     : DS_ANNOUNCEMENT_DELAY_IN_MS)) /
+              1000 -
+          (int)CONSENSUS_OBJECT_TIMEOUT));
   LOG_GENERAL(INFO, "The overall timeout for txn processing will be "
                         << timeout_time << " seconds");
   unique_lock<mutex> lock(m_mutexCVTxnProcFinished);
@@ -1063,10 +1066,13 @@ bool Node::WaitUntilTxnProcessingDone() {
   // wait for txn processing being ready by me (backup)
   unique_lock<mutex> lock(m_mutexCVTxnProcFinished);
   int timeout_time = std::max(
-      0,
-      ((int)MICROBLOCK_TIMEOUT -
-       ((int)TX_DISTRIBUTE_TIME_IN_MS + (int)ANNOUNCEMENT_DELAY_IN_MS) / 1000 -
-       (int)CONSENSUS_OBJECT_TIMEOUT));
+      0, ((int)MICROBLOCK_TIMEOUT -
+          ((int)TX_DISTRIBUTE_TIME_IN_MS +
+           (int)((m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
+                     ? SHARD_ANNOUNCEMENT_DELAY_IN_MS
+                     : DS_ANNOUNCEMENT_DELAY_IN_MS)) /
+              1000 -
+          (int)CONSENSUS_OBJECT_TIMEOUT));
   LOG_GENERAL(INFO,
               "The overall timeout for completing txns processing will be "
                   << timeout_time << " seconds");
@@ -1088,10 +1094,13 @@ bool Node::WaitUntilCompleteMicroBlockIsReady() {
   LOG_MARKER();
   unique_lock<mutex> lock(m_mutexMicroBlock);
   int timeout_time = std::max(
-      0,
-      ((int)MICROBLOCK_TIMEOUT -
-       ((int)TX_DISTRIBUTE_TIME_IN_MS + (int)ANNOUNCEMENT_DELAY_IN_MS) / 1000 -
-       (int)CONSENSUS_OBJECT_TIMEOUT));
+      0, ((int)MICROBLOCK_TIMEOUT -
+          ((int)TX_DISTRIBUTE_TIME_IN_MS +
+           (int)((m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
+                     ? SHARD_ANNOUNCEMENT_DELAY_IN_MS
+                     : DS_ANNOUNCEMENT_DELAY_IN_MS)) /
+              1000 -
+          (int)CONSENSUS_OBJECT_TIMEOUT));
   LOG_GENERAL(INFO,
               "The overall timeout for creating complete microblock will be "
                   << timeout_time << " seconds");
@@ -1126,8 +1135,8 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
 
   if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
       !m_mediator.GetIsVacuousEpoch()) {
-    std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS +
-                                                     ANNOUNCEMENT_DELAY_IN_MS));
+    std::this_thread::sleep_for(chrono::milliseconds(
+        TX_DISTRIBUTE_TIME_IN_MS + SHARD_ANNOUNCEMENT_DELAY_IN_MS));
     while (m_txnPacketThreadOnHold > 0) {
       std::this_thread::sleep_for(chrono::milliseconds(100));
     }

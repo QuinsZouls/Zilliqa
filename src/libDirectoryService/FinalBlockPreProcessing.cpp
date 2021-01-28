@@ -202,10 +202,10 @@ bool DirectoryService::WaitUntilCompleteFinalBlockIsReady() {
   LOG_MARKER();
   unique_lock<mutex> lock(m_mediator.m_node->m_mutexMicroBlock);
   int timeout_time = std::max(
-      0,
-      ((int)MICROBLOCK_TIMEOUT -
-       ((int)TX_DISTRIBUTE_TIME_IN_MS + (int)ANNOUNCEMENT_DELAY_IN_MS) / 1000 -
-       (int)CONSENSUS_OBJECT_TIMEOUT));
+      0, ((int)MICROBLOCK_TIMEOUT -
+          ((int)TX_DISTRIBUTE_TIME_IN_MS + (int)DS_ANNOUNCEMENT_DELAY_IN_MS) /
+              1000 -
+          (int)CONSENSUS_OBJECT_TIMEOUT));
   LOG_GENERAL(INFO,
               "The overall timeout for creating complete microblock and final "
               "block will be "
@@ -1380,7 +1380,7 @@ void DirectoryService::RunConsensusOnFinalBlock() {
     // function, but rather wait for view change.
     bool ConsensusObjCreation = true;
     if (m_mode == PRIMARY_DS) {
-      this_thread::sleep_for(chrono::milliseconds(ANNOUNCEMENT_DELAY_IN_MS));
+      this_thread::sleep_for(chrono::milliseconds(DS_ANNOUNCEMENT_DELAY_IN_MS));
       ConsensusObjCreation = RunConsensusOnFinalBlockWhenDSPrimary();
       if (!ConsensusObjCreation) {
         LOG_GENERAL(WARNING,
