@@ -158,9 +158,18 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock,
   ret_header["DifficultyDS"] = dshead.GetDSDifficulty();
   ret_header["GasPrice"] = dshead.GetGasPrice().str();
   ret_header["PoWWinners"] = Json::Value(Json::arrayValue);
+  if (verbose) {
+    ret_header = Json::Value(Json::arrayValue);
+  }
 
   for (const auto& dswinner : dshead.GetDSPoWWinners()) {
     ret_header["PoWWinners"].append(static_cast<string>(dswinner.first));
+    if (verbose) {
+      Json::Value peer_json;
+      peer_json["IP"] = dswinner.second.GetPrintableIPAddress();
+      peer_json["port"] = dswinner.second.GetListenPortHost();
+      ret_header["PoWWinnersIP"].append(peer_json);
+    }
   }
 
   if (verbose) {
@@ -217,6 +226,11 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock,
   ret["header"] = ret_header;
 
   ret["signature"] = ret_sign;
+
+  if (verbose) {
+    // Maybe remove after testing
+    ret["serialized"] = convertRawDSBlocktoJson(dsblock);
+  }
 
   return ret;
 }
