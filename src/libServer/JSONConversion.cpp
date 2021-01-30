@@ -181,7 +181,7 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock,
     ret["B1"] = convertBooleanVectorToJson(dsblock.GetB1());
 
     string retCS1;
-    if (!DataConversion::SerializableToHexStr(dsblock.GetCS2(), retCS1)) {
+    if (!DataConversion::SerializableToHexStr(dsblock.GetCS1(), retCS1)) {
       LOG_GENERAL(INFO, "Failed to convert dsblock.GetCS2()");
       retCS1 = "";
     }
