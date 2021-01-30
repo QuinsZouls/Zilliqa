@@ -159,7 +159,7 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock,
   ret_header["GasPrice"] = dshead.GetGasPrice().str();
   ret_header["PoWWinners"] = Json::Value(Json::arrayValue);
   if (verbose) {
-    ret_header = Json::Value(Json::arrayValue);
+    ret_header["PoWWinnersIP"] = Json::Value(Json::arrayValue);
   }
 
   for (const auto& dswinner : dshead.GetDSPoWWinners()) {
