@@ -111,6 +111,10 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock,
   ret_body["MicroBlockInfos"] =
       convertMicroBlockInfoArraytoJson(txblock.GetMicroBlockInfos());
 
+  if (verbose) {
+    ret["serialized"] = convertRawTxBlocktoJson(txblock);
+  }
+
   ret["header"] = ret_head;
   ret["body"] = ret_body;
 
