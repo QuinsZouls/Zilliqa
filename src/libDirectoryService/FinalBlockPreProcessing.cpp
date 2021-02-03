@@ -1109,7 +1109,7 @@ bool DirectoryService::PrePrepFinalBlockValidator(
     bytes& messageToCosign) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "DirectoryService::FinalBlockValidator not expected to be "
+                "DirectoryService::PrePrepFinalBlockValidator not expected to be "
                 "called from LookUp node");
     return true;
   }
