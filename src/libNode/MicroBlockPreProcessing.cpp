@@ -252,8 +252,6 @@ bool Node::OnNodeMissingTxns(const bytes& errorMsg, const unsigned int offset,
 
   Peer peer(from.m_ipAddress, portNo);
 
-  //  lock_guard<mutex> g(m_mutexProcessedTransactions);
-
   unsigned int cur_offset = 0;
   bytes tx_message = {MessageType::NODE,
                       NodeInstructionType::SUBMITTRANSACTION};
@@ -266,40 +264,22 @@ bool Node::OnNodeMissingTxns(const bytes& errorMsg, const unsigned int offset,
 
   std::vector<Transaction> txns;
 
-  lock_guard<mutex> g(m_mutexCreatedTransactions);
-
-  for (const auto& hash : missingTransactions) {
-    // LOG_GENERAL(INFO, "Peer " << from << " : " << portNo << " missing txn "
-    // << missingTransactions[i])
-    auto found = m_createdTxns.HashIndex.find(hash);
-    if (found != m_createdTxns.HashIndex.end()) {
-      txns.emplace_back(found->second);
-    } else {
-      LOG_GENERAL(
-          INFO, "Leader unable to find txn in own created txns list " << hash);
-      continue;
-    }
-  }
-
-  /*
-    const std::unordered_map<TxnHash, TransactionWithReceipt>&
-        processedTransactions = (epochNum == m_mediator.m_currentEpochNum)
-                                    ? t_processedTransactions
-                                    : m_processedTransactions[epochNum];
+  {
+    lock_guard<mutex> g(m_mutexCreatedTransactions);
 
     for (const auto& hash : missingTransactions) {
       // LOG_GENERAL(INFO, "Peer " << from << " : " << portNo << " missing txn "
       // << missingTransactions[i])
-      auto found = processedTransactions.find(hash);
-      if (found != processedTransactions.end()) {
-        txns.emplace_back(found->second.GetTransaction());
+      auto found = m_createdTxns.HashIndex.find(hash);
+      if (found != m_createdTxns.HashIndex.end()) {
+        txns.emplace_back(found->second);
       } else {
-        LOG_GENERAL(INFO,OnNode
-                    "Leader unable to find txn proposed in microblock " <<
-    hash); continue;
+        LOG_GENERAL(INFO, "Leader unable to find txn in own created txns list "
+                              << hash);
+        continue;
       }
     }
-  */
+  }
 
 #if 0
   return true;

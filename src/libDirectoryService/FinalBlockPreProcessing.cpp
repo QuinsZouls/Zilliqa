@@ -1108,9 +1108,10 @@ bool DirectoryService::PrePrepFinalBlockValidator(
     const bytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey,
     bytes& messageToCosign) {
   if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "DirectoryService::PrePrepFinalBlockValidator not expected to be "
-                "called from LookUp node");
+    LOG_GENERAL(
+        WARNING,
+        "DirectoryService::PrePrepFinalBlockValidator not expected to be "
+        "called from LookUp node");
     return true;
   }
 
