@@ -229,9 +229,9 @@ class LookupServer : public Server,
                                             Json::Value& response) {
     response = this->GetTransactionStatus(request[0u].asString());
   }
-  inline virtual void GetProofI(const Json::Value& request,
+  inline virtual void GetStateProofI(const Json::Value& request,
                                 Json::Value& response) {
-    response = this->GetProof(request[0u].asString(), request[1u],
+    response = this->GetStateProof(request[0u].asString(), request[1u],
                               request[2u].asString());
   }
 
@@ -240,7 +240,7 @@ class LookupServer : public Server,
                                 const unsigned int num_shards,
                                 const uint128_t& gasPrice,
                                 const CreateTransactionTargetFunc& targetFunc);
-  Json::Value GetProof(const std::string& address, const Json::Value& request,
+  Json::Value GetStateProof(const std::string& address, const Json::Value& request,
                        const uint64_t& blockNum);
   Json::Value GetTransaction(const std::string& transactionHash);
   Json::Value GetSoftConfirmedTransaction(const std::string& txnHash);
@@ -290,7 +290,7 @@ class LookupServer : public Server,
   Json::Value GetMinerInfo(const std::string& blockNum);
   Json::Value GetTxnBodiesForTxBlock(const std::string& txBlockNum);
   Json::Value GetTransactionStatus(const std::string& txnhash);
-  Json::Value GetProof(const std::string& address, const Json::Value& _json,
+  Json::Value GetStateProof(const std::string& address, const Json::Value& _json,
                        const std::string& txBlockNumOrTag);
 };
 

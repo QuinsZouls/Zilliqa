@@ -25,7 +25,7 @@ AccountStoreTemp::AccountStoreTemp(AccountStore& parent) : m_parent(parent) {}
 
 Account* AccountStoreTemp::GetAccount(const Address& address) {
   Account* account =
-      AccountStoreBase<map<Address, Account>>::GetAccount(address);
+      AccountStoreBase<unordered_map<Address, Account>>::GetAccount(address);
   if (account != nullptr) {
     return account;
   }
