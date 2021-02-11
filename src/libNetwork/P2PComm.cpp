@@ -589,7 +589,6 @@ void P2PComm::CloseAndFreeBevP2PSeedConnClient(struct bufferevent* bufev,
     delete destBytes;
     destBytes = NULL;
   }
-  bufferevent_set_timeouts(bufev, NULL, NULL);
   bufferevent_setcb(bufev, NULL, NULL, NULL, NULL);
   bufferevent_free(bufev);
 }
@@ -1112,11 +1111,9 @@ void P2PComm ::EventCbClientSeed([[gnu::unused]] struct bufferevent* bev,
     if (destBytes != NULL) {
       if (bufferevent_write(bev, &(destBytes->at(0)), destBytes->size()) < 0) {
         LOG_GENERAL(WARNING, "Error: P2PSeed bufferevent_write failed !!!");
-        return;
       }
     }
-  }
-  if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR | BEV_EVENT_TIMEOUT)) {
+  } else if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR | BEV_EVENT_TIMEOUT)) {
     CloseAndFreeBevP2PSeedConnClient(bev, ctx);
   }
 }
@@ -1454,7 +1451,10 @@ void P2PComm::SendMsgToSeedNodeOnWire(const Peer& peer, const Peer& fromPeer,
                         (void*)destBytes);
       bufferevent_enable(bev, EV_READ | EV_WRITE);
 
-      struct timeval tv = {SEED_SYNC_LARGE_PULL_INTERVAL, 0};
+      // TODO:Discuss with team on this.
+      // In case of pending txns msg both callbacks come at sametime
+      // How to clear from connection map also.
+      struct timeval tv = {SEED_SYNC_LARGE_PULL_INTERVAL + 10, 0};
       bufferevent_set_timeouts(bev, &tv, NULL);
 
       struct sockaddr_in serv_addr {};
