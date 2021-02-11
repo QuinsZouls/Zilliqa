@@ -164,6 +164,7 @@ class P2PComm {
   inline static bool IsNodeNotRunning();
   static void ClearPeerConnectionCount();
   static void RemoveBevFromMap(const Peer& peer);
+  static void RemoveBevAndCloseP2PConnServer(const Peer& peer);
 
  private:
   using SocketCloser = std::unique_ptr<int, void (*)(int*)>;
